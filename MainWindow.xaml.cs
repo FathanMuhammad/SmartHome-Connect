@@ -550,5 +550,20 @@ namespace SmartHomeAcController
             LogTextBox.Clear();
             AppendLog("Log dibersihkan.", false);
         }
+
+        private void ToggleLog_Click(object sender, RoutedEventArgs e)
+        {
+            if (LogContainer.Visibility == Visibility.Visible)
+            {
+                LogContainer.Visibility = Visibility.Collapsed;
+                ToggleLogBtn.Foreground = (SolidColorBrush)FindResource("TextMutedBrush");
+            }
+            else
+            {
+                LogContainer.Visibility = Visibility.Visible;
+                ToggleLogBtn.Foreground = (SolidColorBrush)FindResource("AccentBlueBrush");
+                LogTextBox.ScrollToEnd();
+            }
+        }
     }
 }

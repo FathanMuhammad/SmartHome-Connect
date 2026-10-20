@@ -6,6 +6,8 @@ config.json
 # Build outputs
 bin/
 obj/
+publish/
+publish-*/
 
 # Visual Studio / IDE
 .vs/

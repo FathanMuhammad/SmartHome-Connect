@@ -2,8 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Smart Home Connect - Fathan Room" 
-        Height="680" Width="470"
-        MinHeight="600" MinWidth="440"
+        Height="600" Width="470"
+        MinHeight="540" MinWidth="440"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource BgDarkBrush}"
         Foreground="{StaticResource TextPrimaryBrush}"
@@ -374,27 +374,52 @@
             </Grid>
         </Grid>
 
-        <!-- 4. Shared API & UDP Log Box -->
-        <Border Grid.Row="3" Background="#111119" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="8,6">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="90"/>
-                </Grid.RowDefinitions>
+        <!-- 4. Bottom Footer with Tiny Log Button & Collapsible Log Drawer -->
+        <StackPanel Grid.Row="3">
+            <!-- Expandable Log Container (Hidden by default) -->
+            <Border x:Name="LogContainer" Visibility="Collapsed" Background="#111119" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="8,6" Margin="0,0,0,6">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="120"/>
+                    </Grid.RowDefinitions>
 
-                <Grid Grid.Row="0" Margin="0,0,0,4">
-                    <TextBlock Text="Smart Home Activity Log (Tuya &amp; WiZ)" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button Content="Copy" FontSize="10" Padding="6,1" Style="{StaticResource PresetButtonStyle}" Height="20" Margin="0,0,4,0" Click="CopyLog_Click"/>
-                        <Button Content="Clear" FontSize="10" Padding="6,1" Style="{StaticResource PresetButtonStyle}" Height="20" Click="ClearLog_Click"/>
-                    </StackPanel>
+                    <Grid Grid.Row="0" Margin="0,0,0,4">
+                        <TextBlock Text="Smart Home Activity Log (Tuya &amp; WiZ)" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Content="Copy" FontSize="10" Padding="6,1" Style="{StaticResource PresetButtonStyle}" Height="20" Margin="0,0,4,0" Click="CopyLog_Click"/>
+                            <Button Content="Clear" FontSize="10" Padding="6,1" Style="{StaticResource PresetButtonStyle}" Height="20" Margin="0,0,4,0" Click="ClearLog_Click"/>
+                            <Button Content="✕" FontSize="10" Padding="6,1" Style="{StaticResource PresetButtonStyle}" Height="20" Click="ToggleLog_Click"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBox Grid.Row="1" x:Name="LogTextBox" Background="Transparent" BorderThickness="0" 
+                             Foreground="#10B981" FontFamily="Consolas, Cascadia Code, Courier New" FontSize="10.5"
+                             IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                             Padding="2"/>
                 </Grid>
+            </Border>
 
-                <TextBox Grid.Row="1" x:Name="LogTextBox" Background="Transparent" BorderThickness="0" 
-                         Foreground="#10B981" FontFamily="Consolas, Cascadia Code, Courier New" FontSize="10.5"
-                         IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
-                         Padding="2"/>
+            <!-- Bottom Tiny Log Button on the far left -->
+            <Grid Margin="0,2,0,0">
+                <Button x:Name="ToggleLogBtn" HorizontalAlignment="Left" Content="📄 Log" Click="ToggleLog_Click"
+                        Background="#1C1C2A" Foreground="{StaticResource TextMutedBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                        Padding="6,1" FontSize="9.5" Cursor="Hand" Height="20">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bdr" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bdr" Property="Background" Value="#2A2A3E"/>
+                                    <Setter Property="Foreground" Value="{StaticResource AccentBlueBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
             </Grid>
-        </Border>
+        </StackPanel>
     </Grid>
 </Window>
