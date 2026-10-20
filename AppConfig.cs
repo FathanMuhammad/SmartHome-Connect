@@ -13,6 +13,10 @@ namespace SmartHomeAcController
         public string RemoteId { get; set; } = "eb370cb75d3a287396tzzq";
         public bool IsSwapped { get; set; } = false;
 
+        // WiZ Lamps cached IPs
+        public string LampuMejaIp { get; set; } = "";
+        public string LampuLedStripIp { get; set; } = "";
+
         // Last state
         public int LastPower { get; set; } = 1;      // 1 = ON, 0 = OFF
         public int LastTemp { get; set; } = 22;      // 16 - 30
