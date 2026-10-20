@@ -2,8 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Smart AC IR Controller" 
-        Height="730" Width="440"
-        MinHeight="680" MinWidth="420"
+        Height="590" Width="440"
+        MinHeight="540" MinWidth="420"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource BgDarkBrush}"
         Foreground="{StaticResource TextPrimaryBrush}"
@@ -166,16 +166,15 @@
                 </Grid>
 
                 <!-- Central Temperature Dial Card -->
-                <Border Background="{StaticResource CardBgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="16" Padding="14,12" Margin="0,0,0,12">
+                <Border Background="{StaticResource CardBgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="16" Padding="14,16" Margin="0,0,0,12">
                     <Grid>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
                         <!-- Sub-header -->
-                        <TextBlock Grid.Row="0" Text="TARGET TEMPERATURE" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                        <TextBlock Grid.Row="0" Text="TARGET TEMPERATURE" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" Margin="0,0,0,8"/>
 
                         <!-- Dial row -->
                         <Grid Grid.Row="1" HorizontalAlignment="Center">
@@ -197,24 +196,7 @@
                             <!-- Plus Button -->
                             <Button Grid.Column="2" Content="+" Style="{StaticResource CircleTempButtonStyle}" Click="TempPlus_Click" VerticalAlignment="Center"/>
                         </Grid>
-
-                        <!-- Send Direct Button -->
-                        <Button Grid.Row="2" Content="⚡ Terapkan Suhu Sekarang" Style="{StaticResource ActionButtonStyle}" Height="34" Margin="30,10,30,0" Click="SendCommand_Click"/>
                     </Grid>
-                </Border>
-
-                <!-- Mode Selection -->
-                <Border Background="{StaticResource CardBgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="12" Padding="10,10" Margin="0,0,0,10">
-                    <StackPanel>
-                        <TextBlock Text="MODE OPERASI" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="2,0,0,6"/>
-                        <UniformGrid Columns="5" x:Name="ModeGrid">
-                            <RadioButton Content="❄ Cool" Style="{StaticResource SegmentRadioButtonStyle}" IsChecked="True" Tag="0" Click="Mode_Click"/>
-                            <RadioButton Content="⚙ Auto" Style="{StaticResource SegmentRadioButtonStyle}" Tag="2" Click="Mode_Click"/>
-                            <RadioButton Content="🌀 Fan" Style="{StaticResource SegmentRadioButtonStyle}" Tag="3" Click="Mode_Click"/>
-                            <RadioButton Content="💧 Dry" Style="{StaticResource SegmentRadioButtonStyle}" Tag="4" Click="Mode_Click"/>
-                            <RadioButton Content="🔥 Heat" Style="{StaticResource SegmentRadioButtonStyle}" Tag="1" Click="Mode_Click"/>
-                        </UniformGrid>
-                    </StackPanel>
                 </Border>
 
                 <!-- Fan Speed / Wind Selection -->
@@ -227,43 +209,6 @@
                             <RadioButton Content="Med" Style="{StaticResource SegmentRadioButtonStyle}" Tag="2" Click="Wind_Click"/>
                             <RadioButton Content="High" Style="{StaticResource SegmentRadioButtonStyle}" Tag="3" Click="Wind_Click"/>
                         </UniformGrid>
-                    </StackPanel>
-                </Border>
-
-                <!-- Quick Presets -->
-                <Border Background="{StaticResource CardBgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="12" Padding="10,10" Margin="0,0,0,4">
-                    <StackPanel>
-                        <TextBlock Text="QUICK PRESETS (1-KLIK)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="2,0,0,6"/>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="6"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="6"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-
-                            <Button Grid.Column="0" Style="{StaticResource PresetButtonStyle}" Click="PresetQuickCool_Click">
-                                <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="❄ Dingin Cepat" FontWeight="SemiBold" FontSize="11" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="18°C • High" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center"/>
-                                </StackPanel>
-                            </Button>
-
-                            <Button Grid.Column="2" Style="{StaticResource PresetButtonStyle}" Click="PresetWorkComfort_Click">
-                                <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="💼 Kerja Santai" FontWeight="SemiBold" FontSize="11" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="22°C • Auto" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center"/>
-                                </StackPanel>
-                            </Button>
-
-                            <Button Grid.Column="4" Style="{StaticResource PresetButtonStyle}" Click="PresetSleepMode_Click">
-                                <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="🌙 Mode Tidur" FontWeight="SemiBold" FontSize="11" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="25°C • Low" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center"/>
-                                </StackPanel>
-                            </Button>
-                        </Grid>
                     </StackPanel>
                 </Border>
             </StackPanel>

@@ -14,7 +14,7 @@ namespace SmartHomeAcController
 
         private int _currentPower = 1;
         private int _currentTemp = 22;
-        private int _currentMode = 0; // 0=Cool, 1=Heat, 2=Auto, 3=Fan, 4=Dry
+        private int _currentMode = 0; // 0=Cool
         private int _currentWind = 0; // 0=Auto, 1=Low, 2=Med, 3=High
         private bool _isUpdatingUi = false;
         private bool _isInitialized = false;
@@ -65,16 +65,6 @@ namespace SmartHomeAcController
 
             UpdateTempDisplay();
 
-            // Set Mode RadioButton
-            foreach (RadioButton rb in ModeGrid.Children.OfType<RadioButton>())
-            {
-                if (int.TryParse(rb.Tag?.ToString(), out int tagVal) && tagVal == _currentMode)
-                {
-                    rb.IsChecked = true;
-                    break;
-                }
-            }
-
             // Set Wind RadioButton
             foreach (RadioButton rb in WindGrid.Children.OfType<RadioButton>())
             {
@@ -88,16 +78,15 @@ namespace SmartHomeAcController
             _isUpdatingUi = false;
             UpdateSummaryText();
 
-            AppendLog($"Aplikasi siap. Konfigurasi dimuat dari config.json.", false);
+            AppendLog($"Aplikasi siap. Terhubung ke: {_config.BaseUrl}", false);
             if (string.IsNullOrWhiteSpace(_config.ClientSecret))
             {
-                AppendLog("Perhatian: Client Secret belum diisi. Masukkan Client Secret di panel Pengaturan.", true);
+                AppendLog("Perhatian: Client Secret belum diisi. Masukkan di panel Pengaturan.", true);
                 SetStatus("Kredensial Kosong", "#F59E0B");
                 SettingsExpander.IsExpanded = true;
             }
             else
             {
-                AppendLog("Kredensial Client Secret terdeteksi.", false);
                 SetStatus("Siap", "#10B981");
             }
         }
@@ -131,16 +120,6 @@ namespace SmartHomeAcController
 
         private void UpdateSummaryText()
         {
-            string modeName = _currentMode switch
-            {
-                0 => "Cool",
-                1 => "Heat",
-                2 => "Auto",
-                3 => "Fan",
-                4 => "Dry",
-                _ => "Unknown"
-            };
-
             string windName = _currentWind switch
             {
                 0 => "Fan Auto",
@@ -151,7 +130,7 @@ namespace SmartHomeAcController
             };
 
             string powerStatus = _currentPower == 1 ? "ON" : "OFF";
-            CurrentStateSummary.Text = $"{powerStatus} • {modeName} • {windName}";
+            CurrentStateSummary.Text = $"{powerStatus} • Cool • {windName}";
         }
 
         private void UpdateTempDisplay()
@@ -270,43 +249,36 @@ namespace SmartHomeAcController
             }
         }
 
-        private void TempMinus_Click(object sender, RoutedEventArgs e)
+        private async void TempMinus_Click(object sender, RoutedEventArgs e)
         {
             if (_currentTemp > 16)
             {
                 _currentTemp--;
                 UpdateTempDisplay();
                 SaveCurrentConfig();
+                await ExecuteSendCommandAsync();
             }
         }
 
-        private void TempPlus_Click(object sender, RoutedEventArgs e)
+        private async void TempPlus_Click(object sender, RoutedEventArgs e)
         {
             if (_currentTemp < 30)
             {
                 _currentTemp++;
                 UpdateTempDisplay();
                 SaveCurrentConfig();
+                await ExecuteSendCommandAsync();
             }
         }
 
-        private void Mode_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is RadioButton rb && int.TryParse(rb.Tag?.ToString(), out int modeVal))
-            {
-                _currentMode = modeVal;
-                UpdateSummaryText();
-                SaveCurrentConfig();
-            }
-        }
-
-        private void Wind_Click(object sender, RoutedEventArgs e)
+        private async void Wind_Click(object sender, RoutedEventArgs e)
         {
             if (sender is RadioButton rb && int.TryParse(rb.Tag?.ToString(), out int windVal))
             {
                 _currentWind = windVal;
                 UpdateSummaryText();
                 SaveCurrentConfig();
+                await ExecuteSendCommandAsync();
             }
         }
 
@@ -324,70 +296,6 @@ namespace SmartHomeAcController
             UpdateSummaryText();
             SaveCurrentConfig();
             await ExecuteSendCommandAsync();
-        }
-
-        private async void SendCommand_Click(object sender, RoutedEventArgs e)
-        {
-            await ExecuteSendCommandAsync();
-        }
-
-        private async void PresetQuickCool_Click(object sender, RoutedEventArgs e)
-        {
-            // 18°C Cool High
-            _currentPower = 1;
-            _currentTemp = 18;
-            _currentMode = 0; // Cool
-            _currentWind = 3; // High
-            ApplyStateToUi();
-            await ExecuteSendCommandAsync();
-        }
-
-        private async void PresetWorkComfort_Click(object sender, RoutedEventArgs e)
-        {
-            // 22°C Cool Auto
-            _currentPower = 1;
-            _currentTemp = 22;
-            _currentMode = 0; // Cool
-            _currentWind = 0; // Auto
-            ApplyStateToUi();
-            await ExecuteSendCommandAsync();
-        }
-
-        private async void PresetSleepMode_Click(object sender, RoutedEventArgs e)
-        {
-            // 25°C Cool Low
-            _currentPower = 1;
-            _currentTemp = 25;
-            _currentMode = 0; // Cool
-            _currentWind = 1; // Low
-            ApplyStateToUi();
-            await ExecuteSendCommandAsync();
-        }
-
-        private void ApplyStateToUi()
-        {
-            _isUpdatingUi = true;
-            UpdateTempDisplay();
-
-            foreach (RadioButton rb in ModeGrid.Children.OfType<RadioButton>())
-            {
-                if (int.TryParse(rb.Tag?.ToString(), out int tagVal))
-                {
-                    rb.IsChecked = (tagVal == _currentMode);
-                }
-            }
-
-            foreach (RadioButton rb in WindGrid.Children.OfType<RadioButton>())
-            {
-                if (int.TryParse(rb.Tag?.ToString(), out int tagVal))
-                {
-                    rb.IsChecked = (tagVal == _currentWind);
-                }
-            }
-
-            _isUpdatingUi = false;
-            UpdateSummaryText();
-            SaveCurrentConfig();
         }
 
         private async Task ExecuteSendCommandAsync()
