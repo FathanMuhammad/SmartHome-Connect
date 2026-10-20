@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -24,8 +25,14 @@ namespace SmartHomeAcController
 
         // WiZ Lamps State
         private bool _isSyncingLampUi = false;
-        private WizLampDevice _lampuMeja = new() { Mac = "A8BB50B5A2E9", Name = "Lampu Meja" };
-        private WizLampDevice _lampuLedStrip = new() { Mac = "CC40858E7E82", Name = "Lampu LED Strip" };
+        private WizLampDevice _lampuMeja = new() { Mac = "A8BB50B5A2E9", Name = "Lampu Meja", IpAddress = "192.168.1.2" };
+        private WizLampDevice _lampuLedStrip = new() { Mac = "CC40858E7E82", Name = "Lampu LED Strip", IpAddress = "192.168.1.4" };
+
+        // Debounce tokens for smooth slider interactions
+        private CancellationTokenSource? _mejaBrightCts;
+        private CancellationTokenSource? _mejaKelvinCts;
+        private CancellationTokenSource? _stripBrightCts;
+        private CancellationTokenSource? _stripKelvinCts;
 
         public MainWindow()
         {
@@ -88,17 +95,18 @@ namespace SmartHomeAcController
                 }
             }
 
-            // Restore cached Lamp IPs if available
+            // Restore cached Lamp IPs if available, otherwise keep verified defaults
             if (!string.IsNullOrWhiteSpace(_config.LampuMejaIp))
             {
                 _lampuMeja.IpAddress = _config.LampuMejaIp;
-                LampuMejaIpText.Text = $"({_config.LampuMejaIp})";
             }
             if (!string.IsNullOrWhiteSpace(_config.LampuLedStripIp))
             {
                 _lampuLedStrip.IpAddress = _config.LampuLedStripIp;
-                LampuLedStripIpText.Text = $"({_config.LampuLedStripIp})";
             }
+
+            LampuMejaIpText.Text = $"({_lampuMeja.IpAddress})";
+            LampuLedStripIpText.Text = $"({_lampuLedStrip.IpAddress})";
 
             _isUpdatingUi = false;
             UpdateSummaryText();
@@ -200,8 +208,11 @@ namespace SmartHomeAcController
             _config.LastMode = _currentMode;
             _config.LastWind = _currentWind;
 
-            _config.LampuMejaIp = _lampuMeja.IpAddress;
-            _config.LampuLedStripIp = _lampuLedStrip.IpAddress;
+            if (!string.IsNullOrWhiteSpace(_lampuMeja.IpAddress))
+                _config.LampuMejaIp = _lampuMeja.IpAddress;
+
+            if (!string.IsNullOrWhiteSpace(_lampuLedStrip.IpAddress))
+                _config.LampuLedStripIp = _lampuLedStrip.IpAddress;
 
             _config.Save();
         }
@@ -362,44 +373,72 @@ namespace SmartHomeAcController
         {
             LampScanStatusText.Text = "Membaca status lampu saat ini...";
 
-            // First: Read current lamp state from cached IPs WITHOUT sending any changes
+            // 1. Instantly test known/cached IPs via direct unicast getPilot
             if (!string.IsNullOrWhiteSpace(_lampuMeja.IpAddress))
             {
-                bool ok = await _wizClient.RefreshLampStatusAsync(_lampuMeja);
+                bool ok = await _wizClient.RefreshLampStatusAsync(_lampuMeja, 1500);
                 if (ok) UpdateLampuMejaUi();
             }
 
             if (!string.IsNullOrWhiteSpace(_lampuLedStrip.IpAddress))
             {
-                bool ok = await _wizClient.RefreshLampStatusAsync(_lampuLedStrip);
+                bool ok = await _wizClient.RefreshLampStatusAsync(_lampuLedStrip, 1500);
                 if (ok) UpdateLampuLedStripUi();
             }
 
-            // Then: Run discovery scan in the background
+            // 2. Run discovery to refresh or confirm dynamic IP assignments
             await ScanLampsInBackgroundAsync();
         }
 
         private async Task ScanLampsInBackgroundAsync()
         {
-            LampScanStatusText.Text = "Memindai lampu via UDP Broadcast...";
-            var lamps = await _wizClient.DiscoverLampsAsync(2000);
+            LampScanStatusText.Text = "Memindai lampu (Broadcast & Direct)...";
+
+            var knownIps = new List<string>();
+            if (!string.IsNullOrWhiteSpace(_lampuMeja.IpAddress)) knownIps.Add(_lampuMeja.IpAddress);
+            if (!string.IsNullOrWhiteSpace(_lampuLedStrip.IpAddress)) knownIps.Add(_lampuLedStrip.IpAddress);
+            knownIps.Add("192.168.1.2");
+            knownIps.Add("192.168.1.4");
+
+            var lamps = await _wizClient.DiscoverLampsAsync(knownIps.Distinct(), 2500);
 
             foreach (var lamp in lamps)
             {
                 if (lamp.Mac.Equals("A8BB50B5A2E9", StringComparison.OrdinalIgnoreCase))
                 {
-                    _lampuMeja = lamp;
-                    UpdateLampuMejaUi();
+                    if (lamp.IsOnline || string.IsNullOrWhiteSpace(_lampuMeja.IpAddress))
+                    {
+                        _lampuMeja = lamp;
+                    }
                 }
                 else if (lamp.Mac.Equals("CC40858E7E82", StringComparison.OrdinalIgnoreCase))
                 {
-                    _lampuLedStrip = lamp;
-                    UpdateLampuLedStripUi();
+                    if (lamp.IsOnline || string.IsNullOrWhiteSpace(_lampuLedStrip.IpAddress))
+                    {
+                        _lampuLedStrip = lamp;
+                    }
                 }
             }
 
+            // Fallback direct check if broadcast missed Lampu Meja
+            if (!_lampuMeja.IsOnline && !string.IsNullOrWhiteSpace(_lampuMeja.IpAddress))
+            {
+                bool ok = await _wizClient.RefreshLampStatusAsync(_lampuMeja, 2000);
+                if (ok) _lampuMeja.IsOnline = true;
+            }
+
+            // Fallback direct check if broadcast missed Lampu LED Strip
+            if (!_lampuLedStrip.IsOnline && !string.IsNullOrWhiteSpace(_lampuLedStrip.IpAddress))
+            {
+                bool ok = await _wizClient.RefreshLampStatusAsync(_lampuLedStrip, 2000);
+                if (ok) _lampuLedStrip.IsOnline = true;
+            }
+
+            UpdateLampuMejaUi();
+            UpdateLampuLedStripUi();
             SaveCurrentConfig();
-            int onlineCount = lamps.Count(l => l.IsOnline);
+
+            int onlineCount = (_lampuMeja.IsOnline ? 1 : 0) + (_lampuLedStrip.IsOnline ? 1 : 0);
             LampScanStatusText.Text = $"{onlineCount} lampu online terdeteksi.";
         }
 
@@ -511,45 +550,91 @@ namespace SmartHomeAcController
             previewBorder.Background = (SolidColorBrush)new BrushConverter().ConvertFrom(hex)!;
         }
 
+        // ==========================================
         // Lampu Meja Handlers
+        // ==========================================
         private async void LampuMeja_On_Click(object sender, RoutedEventArgs e)
         {
+            _lampuMeja.IsOnline = true;
             await _wizClient.SetPowerAsync(_lampuMeja, true);
             UpdateLampuMejaUi();
         }
 
         private async void LampuMeja_Off_Click(object sender, RoutedEventArgs e)
         {
+            _lampuMeja.IsOnline = true;
             await _wizClient.SetPowerAsync(_lampuMeja, false);
             UpdateLampuMejaUi();
         }
 
-        private async void LampuMeja_BrightChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        private void LampuMeja_BrightChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (!_isInitialized || _isSyncingLampUi) return;
             int val = (int)e.NewValue;
             LampuMejaBrightText.Text = $"{val}%";
-            await _wizClient.SetBrightnessAsync(_lampuMeja, val);
+
+            // Debounce rapid slider movement
+            _mejaBrightCts?.Cancel();
+            _mejaBrightCts = new CancellationTokenSource();
+            var token = _mejaBrightCts.Token;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(90, token);
+                    if (!token.IsCancellationRequested)
+                    {
+                        await _wizClient.SetBrightnessAsync(_lampuMeja, val);
+                    }
+                }
+                catch (OperationCanceledException) { }
+            }, token);
         }
 
-        private async void LampuMeja_KelvinChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        private void LampuMeja_KelvinChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (!_isInitialized || _isSyncingLampUi) return;
             int val = (int)e.NewValue;
             LampuMejaKelvinText.Text = $"{val}K";
             UpdateKelvinPreview(LampuMejaKelvinPreview, val);
-            await _wizClient.SetKelvinAsync(_lampuMeja, val);
+
+            // Debounce rapid slider movement
+            _mejaKelvinCts?.Cancel();
+            _mejaKelvinCts = new CancellationTokenSource();
+            var token = _mejaKelvinCts.Token;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(90, token);
+                    if (!token.IsCancellationRequested)
+                    {
+                        await _wizClient.SetKelvinAsync(_lampuMeja, val);
+                    }
+                }
+                catch (OperationCanceledException) { }
+            }, token);
         }
 
         private async void LampuMeja_Warm_Click(object sender, RoutedEventArgs e)
         {
+            _isSyncingLampUi = true;
             LampuMejaKelvinSlider.Value = 2700;
+            LampuMejaKelvinText.Text = "2700K";
+            UpdateKelvinPreview(LampuMejaKelvinPreview, 2700);
+            _isSyncingLampUi = false;
             await _wizClient.SetKelvinAsync(_lampuMeja, 2700);
         }
 
         private async void LampuMeja_Daylight_Click(object sender, RoutedEventArgs e)
         {
+            _isSyncingLampUi = true;
             LampuMejaKelvinSlider.Value = 6500;
+            LampuMejaKelvinText.Text = "6500K";
+            UpdateKelvinPreview(LampuMejaKelvinPreview, 6500);
+            _isSyncingLampUi = false;
             await _wizClient.SetKelvinAsync(_lampuMeja, 6500);
         }
 
@@ -557,45 +642,91 @@ namespace SmartHomeAcController
         private async void LampuMeja_Green_Click(object sender, RoutedEventArgs e) => await _wizClient.SetRgbAsync(_lampuMeja, 0, 255, 0);
         private async void LampuMeja_Blue_Click(object sender, RoutedEventArgs e) => await _wizClient.SetRgbAsync(_lampuMeja, 0, 0, 255);
 
+        // ==========================================
         // Lampu LED Strip Handlers
+        // ==========================================
         private async void LampuLedStrip_On_Click(object sender, RoutedEventArgs e)
         {
+            _lampuLedStrip.IsOnline = true;
             await _wizClient.SetPowerAsync(_lampuLedStrip, true);
             UpdateLampuLedStripUi();
         }
 
         private async void LampuLedStrip_Off_Click(object sender, RoutedEventArgs e)
         {
+            _lampuLedStrip.IsOnline = true;
             await _wizClient.SetPowerAsync(_lampuLedStrip, false);
             UpdateLampuLedStripUi();
         }
 
-        private async void LampuLedStrip_BrightChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        private void LampuLedStrip_BrightChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (!_isInitialized || _isSyncingLampUi) return;
             int val = (int)e.NewValue;
             LampuLedStripBrightText.Text = $"{val}%";
-            await _wizClient.SetBrightnessAsync(_lampuLedStrip, val);
+
+            // Debounce rapid slider movement
+            _stripBrightCts?.Cancel();
+            _stripBrightCts = new CancellationTokenSource();
+            var token = _stripBrightCts.Token;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(90, token);
+                    if (!token.IsCancellationRequested)
+                    {
+                        await _wizClient.SetBrightnessAsync(_lampuLedStrip, val);
+                    }
+                }
+                catch (OperationCanceledException) { }
+            }, token);
         }
 
-        private async void LampuLedStrip_KelvinChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        private void LampuLedStrip_KelvinChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (!_isInitialized || _isSyncingLampUi) return;
             int val = (int)e.NewValue;
             LampuLedStripKelvinText.Text = $"{val}K";
             UpdateKelvinPreview(LampuLedStripKelvinPreview, val);
-            await _wizClient.SetKelvinAsync(_lampuLedStrip, val);
+
+            // Debounce rapid slider movement
+            _stripKelvinCts?.Cancel();
+            _stripKelvinCts = new CancellationTokenSource();
+            var token = _stripKelvinCts.Token;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(90, token);
+                    if (!token.IsCancellationRequested)
+                    {
+                        await _wizClient.SetKelvinAsync(_lampuLedStrip, val);
+                    }
+                }
+                catch (OperationCanceledException) { }
+            }, token);
         }
 
         private async void LampuLedStrip_Warm_Click(object sender, RoutedEventArgs e)
         {
+            _isSyncingLampUi = true;
             LampuLedStripKelvinSlider.Value = 2700;
+            LampuLedStripKelvinText.Text = "2700K";
+            UpdateKelvinPreview(LampuLedStripKelvinPreview, 2700);
+            _isSyncingLampUi = false;
             await _wizClient.SetKelvinAsync(_lampuLedStrip, 2700);
         }
 
         private async void LampuLedStrip_Daylight_Click(object sender, RoutedEventArgs e)
         {
+            _isSyncingLampUi = true;
             LampuLedStripKelvinSlider.Value = 6500;
+            LampuLedStripKelvinText.Text = "6500K";
+            UpdateKelvinPreview(LampuLedStripKelvinPreview, 6500);
+            _isSyncingLampUi = false;
             await _wizClient.SetKelvinAsync(_lampuLedStrip, 6500);
         }
 

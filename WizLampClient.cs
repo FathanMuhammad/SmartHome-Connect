@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
@@ -42,9 +44,55 @@ namespace SmartHomeAcController
         }
 
         /// <summary>
-        /// Discovers WiZ lamps on the local network via UDP broadcast (Port 38899)
+        /// Collects all local subnet broadcast addresses (e.g. 192.168.1.255)
         /// </summary>
-        public async Task<List<WizLampDevice>> DiscoverLampsAsync(int timeoutMs = 2000)
+        private static List<IPAddress> GetSubnetBroadcastAddresses()
+        {
+            var list = new List<IPAddress> { IPAddress.Broadcast }; // 255.255.255.255
+
+            try
+            {
+                foreach (var iface in NetworkInterface.GetAllNetworkInterfaces())
+                {
+                    if (iface.OperationalStatus != OperationalStatus.Up ||
+                        iface.NetworkInterfaceType == NetworkInterfaceType.Loopback)
+                        continue;
+
+                    var ipProps = iface.GetIPProperties();
+                    foreach (var u in ipProps.UnicastAddresses)
+                    {
+                        if (u.Address.AddressFamily == AddressFamily.InterNetwork && u.IPv4Mask != null)
+                        {
+                            byte[] ipBytes = u.Address.GetAddressBytes();
+                            byte[] maskBytes = u.IPv4Mask.GetAddressBytes();
+                            byte[] broadcastBytes = new byte[4];
+
+                            for (int i = 0; i < 4; i++)
+                            {
+                                broadcastBytes[i] = (byte)(ipBytes[i] | ~maskBytes[i]);
+                            }
+
+                            var bcastIp = new IPAddress(broadcastBytes);
+                            if (!list.Contains(bcastIp))
+                            {
+                                list.Add(bcastIp);
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Fallback to 255.255.255.255
+            }
+
+            return list;
+        }
+
+        /// <summary>
+        /// Discovers WiZ lamps on the local network via Subnet Broadcast and direct unicast queries
+        /// </summary>
+        public async Task<List<WizLampDevice>> DiscoverLampsAsync(IEnumerable<string>? knownIps = null, int timeoutMs = 2500)
         {
             var discovered = new Dictionary<string, WizLampDevice>(StringComparer.OrdinalIgnoreCase);
 
@@ -59,7 +107,7 @@ namespace SmartHomeAcController
                 };
             }
 
-            Log("Memulai pencarian lampu WiZ (UDP Broadcast)...");
+            Log("Memulai pencarian lampu WiZ (Broadcast & Direct Query)...");
 
             try
             {
@@ -67,12 +115,38 @@ namespace SmartHomeAcController
                 udpClient.EnableBroadcast = true;
                 udpClient.Client.ReceiveTimeout = timeoutMs;
 
-                // Send broadcast getSystemConfig
                 string discoverMsg = "{\"method\":\"getSystemConfig\",\"params\":{}}";
                 byte[] bytes = Encoding.UTF8.GetBytes(discoverMsg);
-                var broadcastEndpoint = new IPEndPoint(IPAddress.Broadcast, WizPort);
 
-                await udpClient.SendAsync(bytes, bytes.Length, broadcastEndpoint);
+                // 1. Send broadcast to 255.255.255.255 and all subnet broadcasts (e.g. 192.168.1.255)
+                var broadcastAddresses = GetSubnetBroadcastAddresses();
+                foreach (var bcast in broadcastAddresses)
+                {
+                    try
+                    {
+                        await udpClient.SendAsync(bytes, bytes.Length, new IPEndPoint(bcast, WizPort));
+                    }
+                    catch
+                    {
+                        // Ignore broadcast errors on secondary adapters
+                    }
+                }
+
+                // 2. Also send direct unicast to any known IPs (guarantees discovery even if router blocks broadcast)
+                if (knownIps != null)
+                {
+                    foreach (var ip in knownIps.Where(ip => !string.IsNullOrWhiteSpace(ip)))
+                    {
+                        try
+                        {
+                            await udpClient.SendAsync(bytes, bytes.Length, ip, WizPort);
+                        }
+                        catch
+                        {
+                            // Ignore unicast send errors
+                        }
+                    }
+                }
 
                 using var cts = new CancellationTokenSource(timeoutMs);
 
@@ -106,11 +180,10 @@ namespace SmartHomeAcController
                                 {
                                     device.IpAddress = ip;
                                     device.IsOnline = true;
-                                    Log($"Lampu ditemukan: {device.Name} ({ip}) [MAC: {mac}]");
+                                    Log($"Lampu terdeteksi: {device.Name} di IP {ip}");
                                 }
                                 else
                                 {
-                                    // Other WiZ lamp found
                                     var newDevice = new WizLampDevice
                                     {
                                         Mac = mac,
@@ -130,13 +203,13 @@ namespace SmartHomeAcController
                     }
                     catch (Exception ex)
                     {
-                        Log($"Peringatan saat scan: {ex.Message}", true);
+                        Log($"Peringatan scan: {ex.Message}", true);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Log($"Gagal broadcast discovery: {ex.Message}", true);
+                Log($"Gagal proses discovery: {ex.Message}", true);
             }
 
             var list = new List<WizLampDevice>(discovered.Values);
@@ -169,7 +242,7 @@ namespace SmartHomeAcController
             }
             catch (Exception ex)
             {
-                Log($"Gagal kirim ke {ip}: {ex.Message}", true);
+                Log($"Gagal kirim UDP ke {ip}: {ex.Message}", true);
                 return false;
             }
         }
@@ -186,7 +259,9 @@ namespace SmartHomeAcController
         {
             dimming = Math.Clamp(dimming, 10, 100);
             lamp.Brightness = dimming;
-            string cmd = $"{{\"method\":\"setPilot\",\"params\":{{\"dimming\":{dimming}}}}}";
+            lamp.IsOn = true;
+            // Include state: true so the light turns on/applies even if asleep
+            string cmd = $"{{\"method\":\"setPilot\",\"params\":{{\"state\":true,\"dimming\":{dimming}}}}}";
             await SendCommandAsync(lamp.IpAddress, cmd);
         }
 
@@ -194,7 +269,8 @@ namespace SmartHomeAcController
         {
             kelvin = Math.Clamp(kelvin, 2000, 6500);
             lamp.Kelvin = kelvin;
-            string cmd = $"{{\"method\":\"setPilot\",\"params\":{{\"temp\":{kelvin}}}}}";
+            lamp.IsOn = true;
+            string cmd = $"{{\"method\":\"setPilot\",\"params\":{{\"state\":true,\"temp\":{kelvin}}}}}";
             await SendCommandAsync(lamp.IpAddress, cmd);
         }
 
@@ -203,69 +279,89 @@ namespace SmartHomeAcController
             lamp.R = r;
             lamp.G = g;
             lamp.B = b;
-            string cmd = $"{{\"method\":\"setPilot\",\"params\":{{\"r\":{r},\"g\":{g},\"b\":{b}}}}}";
+            lamp.IsOn = true;
+            string cmd = $"{{\"method\":\"setPilot\",\"params\":{{\"state\":true,\"r\":{r},\"g\":{g},\"b\":{b}}}}}";
             await SendCommandAsync(lamp.IpAddress, cmd);
+            Log($"{lamp.Name}: Warna RGB diubah ke ({r},{g},{b})");
         }
 
         /// <summary>
-        /// Queries current status of a WiZ lamp (getPilot)
+        /// Queries current status of a WiZ lamp (getPilot) with retry
         /// </summary>
-        public async Task<bool> RefreshLampStatusAsync(WizLampDevice lamp)
+        public async Task<bool> RefreshLampStatusAsync(WizLampDevice lamp, int timeoutMs = 2500)
         {
             if (string.IsNullOrWhiteSpace(lamp.IpAddress)) return false;
 
-            try
+            // Try up to 2 attempts
+            for (int attempt = 1; attempt <= 2; attempt++)
             {
-                using var udpClient = new UdpClient();
-                udpClient.Client.ReceiveTimeout = 1500;
-
-                string query = "{\"method\":\"getPilot\"}";
-                byte[] queryBytes = Encoding.UTF8.GetBytes(query);
-                await udpClient.SendAsync(queryBytes, queryBytes.Length, lamp.IpAddress, WizPort);
-
-                var receiveTask = udpClient.ReceiveAsync();
-                var completedTask = await Task.WhenAny(receiveTask, Task.Delay(1500));
-
-                if (completedTask == receiveTask)
+                try
                 {
-                    var result = await receiveTask;
-                    string response = Encoding.UTF8.GetString(result.Buffer);
+                    using var udpClient = new UdpClient();
+                    udpClient.Client.ReceiveTimeout = timeoutMs;
 
-                    using var doc = JsonDocument.Parse(response);
-                    var root = doc.RootElement;
+                    string query = "{\"method\":\"getPilot\"}";
+                    byte[] queryBytes = Encoding.UTF8.GetBytes(query);
+                    await udpClient.SendAsync(queryBytes, queryBytes.Length, lamp.IpAddress, WizPort);
 
-                    if (root.TryGetProperty("result", out var res))
+                    var receiveTask = udpClient.ReceiveAsync();
+                    var completedTask = await Task.WhenAny(receiveTask, Task.Delay(timeoutMs));
+
+                    if (completedTask == receiveTask)
                     {
-                        lamp.IsOnline = true;
+                        var result = await receiveTask;
+                        string response = Encoding.UTF8.GetString(result.Buffer);
 
-                        if (res.TryGetProperty("state", out var stateProp))
-                        {
-                            lamp.IsOn = stateProp.GetBoolean();
-                        }
-                        if (res.TryGetProperty("dimming", out var dimProp))
-                        {
-                            lamp.Brightness = dimProp.GetInt32();
-                        }
-                        if (res.TryGetProperty("temp", out var tempProp))
-                        {
-                            lamp.Kelvin = tempProp.GetInt32();
-                        }
-                        if (res.TryGetProperty("r", out var rProp) &&
-                            res.TryGetProperty("g", out var gProp) &&
-                            res.TryGetProperty("b", out var bProp))
-                        {
-                            lamp.R = (byte)rProp.GetInt32();
-                            lamp.G = (byte)gProp.GetInt32();
-                            lamp.B = (byte)bProp.GetInt32();
-                        }
+                        using var doc = JsonDocument.Parse(response);
+                        var root = doc.RootElement;
 
-                        return true;
+                        if (root.TryGetProperty("result", out var res))
+                        {
+                            lamp.IsOnline = true;
+
+                            if (res.TryGetProperty("state", out var stateProp))
+                            {
+                                if (stateProp.ValueKind == JsonValueKind.True || stateProp.ValueKind == JsonValueKind.False)
+                                {
+                                    lamp.IsOn = stateProp.GetBoolean();
+                                }
+                                else if (stateProp.ValueKind == JsonValueKind.Number)
+                                {
+                                    lamp.IsOn = stateProp.GetInt32() == 1;
+                                }
+                            }
+
+                            if (res.TryGetProperty("dimming", out var dimProp) && dimProp.ValueKind == JsonValueKind.Number)
+                            {
+                                lamp.Brightness = Math.Clamp(dimProp.GetInt32(), 10, 100);
+                            }
+
+                            if (res.TryGetProperty("temp", out var tempProp) && tempProp.ValueKind == JsonValueKind.Number)
+                            {
+                                int temp = tempProp.GetInt32();
+                                if (temp >= 2000 && temp <= 6500)
+                                {
+                                    lamp.Kelvin = temp;
+                                }
+                            }
+
+                            if (res.TryGetProperty("r", out var rProp) &&
+                                res.TryGetProperty("g", out var gProp) &&
+                                res.TryGetProperty("b", out var bProp))
+                            {
+                                lamp.R = (byte)Math.Clamp(rProp.GetInt32(), 0, 255);
+                                lamp.G = (byte)Math.Clamp(gProp.GetInt32(), 0, 255);
+                                lamp.B = (byte)Math.Clamp(bProp.GetInt32(), 0, 255);
+                            }
+
+                            return true;
+                        }
                     }
                 }
-            }
-            catch
-            {
-                // Lamp might be offline
+                catch
+                {
+                    // Retry once
+                }
             }
 
             return false;
