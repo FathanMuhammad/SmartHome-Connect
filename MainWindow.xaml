@@ -64,8 +64,8 @@
                     <!-- Data Center Dropdown -->
                     <TextBlock Text="Data Center" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
                     <ComboBox x:Name="DataCenterComboBox" Background="#25253A" Foreground="{StaticResource TextPrimaryBrush}" Padding="8,6" Margin="0,0,0,8">
-                        <ComboBoxItem Content="Singapore (https://openapi-sg.iotbing.com)" Tag="https://openapi-sg.iotbing.com" IsSelected="True"/>
-                        <ComboBoxItem Content="Western America (https://openapi.tuyaus.com)" Tag="https://openapi.tuyaus.com"/>
+                        <ComboBoxItem Content="Western America (https://openapi.tuyaus.com)" Tag="https://openapi.tuyaus.com" IsSelected="True"/>
+                        <ComboBoxItem Content="Singapore (https://openapi-sg.iotbing.com)" Tag="https://openapi-sg.iotbing.com"/>
                         <ComboBoxItem Content="Central Europe (https://openapi.tuyaeu.com)" Tag="https://openapi.tuyaeu.com"/>
                     </ComboBox>
 

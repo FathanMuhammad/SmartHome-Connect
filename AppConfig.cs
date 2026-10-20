@@ -8,7 +8,7 @@ namespace SmartHomeAcController
     {
         public string ClientId { get; set; } = "euvgdj83shdfd7vpepst";
         public string ClientSecret { get; set; } = "c73d12861c6245d7bc27cdada45a0806";
-        public string BaseUrl { get; set; } = "https://openapi-sg.iotbing.com";
+        public string BaseUrl { get; set; } = "https://openapi.tuyaus.com";
         public string InfraredId { get; set; } = "eb8db822f09c6f271acwdy";
         public string RemoteId { get; set; } = "eb370cb75d3a287396tzzq";
         public bool IsSwapped { get; set; } = false;
