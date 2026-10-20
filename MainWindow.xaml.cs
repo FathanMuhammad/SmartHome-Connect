@@ -23,6 +23,7 @@ namespace SmartHomeAcController
         private bool _isInitialized = false;
 
         // WiZ Lamps State
+        private bool _isSyncingLampUi = false;
         private WizLampDevice _lampuMeja = new() { Mac = "A8BB50B5A2E9", Name = "Lampu Meja" };
         private WizLampDevice _lampuLedStrip = new() { Mac = "CC40858E7E82", Name = "Lampu LED Strip" };
 
@@ -41,8 +42,8 @@ namespace SmartHomeAcController
             InitializeUiState();
             _isInitialized = true;
 
-            // Trigger non-blocking lamp discovery on start
-            _ = ScanLampsInBackgroundAsync();
+            // Trigger non-blocking lamp status sync & discovery on start
+            _ = InitialSyncLampsAsync();
         }
 
         private void InitializeUiState()
@@ -357,6 +358,27 @@ namespace SmartHomeAcController
             await ScanLampsInBackgroundAsync();
         }
 
+        private async Task InitialSyncLampsAsync()
+        {
+            LampScanStatusText.Text = "Membaca status lampu saat ini...";
+
+            // First: Read current lamp state from cached IPs WITHOUT sending any changes
+            if (!string.IsNullOrWhiteSpace(_lampuMeja.IpAddress))
+            {
+                bool ok = await _wizClient.RefreshLampStatusAsync(_lampuMeja);
+                if (ok) UpdateLampuMejaUi();
+            }
+
+            if (!string.IsNullOrWhiteSpace(_lampuLedStrip.IpAddress))
+            {
+                bool ok = await _wizClient.RefreshLampStatusAsync(_lampuLedStrip);
+                if (ok) UpdateLampuLedStripUi();
+            }
+
+            // Then: Run discovery scan in the background
+            await ScanLampsInBackgroundAsync();
+        }
+
         private async Task ScanLampsInBackgroundAsync()
         {
             LampScanStatusText.Text = "Memindai lampu via UDP Broadcast...";
@@ -378,28 +400,74 @@ namespace SmartHomeAcController
 
             SaveCurrentConfig();
             int onlineCount = lamps.Count(l => l.IsOnline);
-            LampScanStatusText.Text = $"{onlineCount} lampu online ditemukan.";
+            LampScanStatusText.Text = $"{onlineCount} lampu online terdeteksi.";
+        }
+
+        private void UpdatePowerButtonStates(Button onBtn, Button offBtn, bool isOn)
+        {
+            if (isOn)
+            {
+                // ON button: Active Emerald Green
+                onBtn.Background = new SolidColorBrush(Color.FromRgb(16, 185, 129));
+                onBtn.Foreground = Brushes.White;
+                onBtn.BorderBrush = new SolidColorBrush(Color.FromRgb(52, 211, 153));
+                onBtn.BorderThickness = new Thickness(1.5);
+                onBtn.FontWeight = FontWeights.Bold;
+
+                // OFF button: Inactive Subtle
+                offBtn.Background = new SolidColorBrush(Color.FromRgb(34, 34, 52));
+                offBtn.Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184));
+                offBtn.BorderBrush = new SolidColorBrush(Color.FromRgb(54, 54, 84));
+                offBtn.BorderThickness = new Thickness(1);
+                offBtn.FontWeight = FontWeights.Normal;
+            }
+            else
+            {
+                // ON button: Inactive Subtle
+                onBtn.Background = new SolidColorBrush(Color.FromRgb(34, 34, 52));
+                onBtn.Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184));
+                onBtn.BorderBrush = new SolidColorBrush(Color.FromRgb(54, 54, 84));
+                onBtn.BorderThickness = new Thickness(1);
+                onBtn.FontWeight = FontWeights.Normal;
+
+                // OFF button: Active Ruby Red
+                offBtn.Background = new SolidColorBrush(Color.FromRgb(239, 68, 68));
+                offBtn.Foreground = Brushes.White;
+                offBtn.BorderBrush = new SolidColorBrush(Color.FromRgb(248, 113, 113));
+                offBtn.BorderThickness = new Thickness(1.5);
+                offBtn.FontWeight = FontWeights.Bold;
+            }
         }
 
         private void UpdateLampuMejaUi()
         {
             Dispatcher.Invoke(() =>
             {
-                LampuMejaIpText.Text = string.IsNullOrEmpty(_lampuMeja.IpAddress) ? "(Offline)" : $"({_lampuMeja.IpAddress})";
-                if (_lampuMeja.IsOnline)
+                _isSyncingLampUi = true;
+                try
                 {
-                    LampuMejaStatus.Text = _lampuMeja.IsOn ? "🟢 Menyala" : "🔴 Mati";
-                    LampuMejaStatus.Foreground = (SolidColorBrush)new BrushConverter().ConvertFrom(_lampuMeja.IsOn ? "#10B981" : "#EF4444")!;
-                    LampuMejaBrightSlider.Value = _lampuMeja.Brightness;
-                    LampuMejaBrightText.Text = $"{_lampuMeja.Brightness}%";
-                    LampuMejaKelvinSlider.Value = _lampuMeja.Kelvin;
-                    LampuMejaKelvinText.Text = $"{_lampuMeja.Kelvin}K";
-                    UpdateKelvinPreview(LampuMejaKelvinPreview, _lampuMeja.Kelvin);
+                    LampuMejaIpText.Text = string.IsNullOrEmpty(_lampuMeja.IpAddress) ? "(Offline)" : $"({_lampuMeja.IpAddress})";
+                    if (_lampuMeja.IsOnline)
+                    {
+                        LampuMejaStatus.Text = _lampuMeja.IsOn ? "🟢 Menyala" : "🔴 Mati";
+                        LampuMejaStatus.Foreground = (SolidColorBrush)new BrushConverter().ConvertFrom(_lampuMeja.IsOn ? "#10B981" : "#EF4444")!;
+                        UpdatePowerButtonStates(LampuMejaOnBtn, LampuMejaOffBtn, _lampuMeja.IsOn);
+                        LampuMejaBrightSlider.Value = _lampuMeja.Brightness;
+                        LampuMejaBrightText.Text = $"{_lampuMeja.Brightness}%";
+                        LampuMejaKelvinSlider.Value = _lampuMeja.Kelvin;
+                        LampuMejaKelvinText.Text = $"{_lampuMeja.Kelvin}K";
+                        UpdateKelvinPreview(LampuMejaKelvinPreview, _lampuMeja.Kelvin);
+                    }
+                    else
+                    {
+                        LampuMejaStatus.Text = "⚪ Offline";
+                        LampuMejaStatus.Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184));
+                        UpdatePowerButtonStates(LampuMejaOnBtn, LampuMejaOffBtn, false);
+                    }
                 }
-                else
+                finally
                 {
-                    LampuMejaStatus.Text = "⚪ Offline";
-                    LampuMejaStatus.Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184));
+                    _isSyncingLampUi = false;
                 }
             });
         }
@@ -408,21 +476,31 @@ namespace SmartHomeAcController
         {
             Dispatcher.Invoke(() =>
             {
-                LampuLedStripIpText.Text = string.IsNullOrEmpty(_lampuLedStrip.IpAddress) ? "(Offline)" : $"({_lampuLedStrip.IpAddress})";
-                if (_lampuLedStrip.IsOnline)
+                _isSyncingLampUi = true;
+                try
                 {
-                    LampuLedStripStatus.Text = _lampuLedStrip.IsOn ? "🟢 Menyala" : "🔴 Mati";
-                    LampuLedStripStatus.Foreground = (SolidColorBrush)new BrushConverter().ConvertFrom(_lampuLedStrip.IsOn ? "#10B981" : "#EF4444")!;
-                    LampuLedStripBrightSlider.Value = _lampuLedStrip.Brightness;
-                    LampuLedStripBrightText.Text = $"{_lampuLedStrip.Brightness}%";
-                    LampuLedStripKelvinSlider.Value = _lampuLedStrip.Kelvin;
-                    LampuLedStripKelvinText.Text = $"{_lampuLedStrip.Kelvin}K";
-                    UpdateKelvinPreview(LampuLedStripKelvinPreview, _lampuLedStrip.Kelvin);
+                    LampuLedStripIpText.Text = string.IsNullOrEmpty(_lampuLedStrip.IpAddress) ? "(Offline)" : $"({_lampuLedStrip.IpAddress})";
+                    if (_lampuLedStrip.IsOnline)
+                    {
+                        LampuLedStripStatus.Text = _lampuLedStrip.IsOn ? "🟢 Menyala" : "🔴 Mati";
+                        LampuLedStripStatus.Foreground = (SolidColorBrush)new BrushConverter().ConvertFrom(_lampuLedStrip.IsOn ? "#10B981" : "#EF4444")!;
+                        UpdatePowerButtonStates(LampuLedStripOnBtn, LampuLedStripOffBtn, _lampuLedStrip.IsOn);
+                        LampuLedStripBrightSlider.Value = _lampuLedStrip.Brightness;
+                        LampuLedStripBrightText.Text = $"{_lampuLedStrip.Brightness}%";
+                        LampuLedStripKelvinSlider.Value = _lampuLedStrip.Kelvin;
+                        LampuLedStripKelvinText.Text = $"{_lampuLedStrip.Kelvin}K";
+                        UpdateKelvinPreview(LampuLedStripKelvinPreview, _lampuLedStrip.Kelvin);
+                    }
+                    else
+                    {
+                        LampuLedStripStatus.Text = "⚪ Offline";
+                        LampuLedStripStatus.Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184));
+                        UpdatePowerButtonStates(LampuLedStripOnBtn, LampuLedStripOffBtn, false);
+                    }
                 }
-                else
+                finally
                 {
-                    LampuLedStripStatus.Text = "⚪ Offline";
-                    LampuLedStripStatus.Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184));
+                    _isSyncingLampUi = false;
                 }
             });
         }
@@ -448,7 +526,7 @@ namespace SmartHomeAcController
 
         private async void LampuMeja_BrightChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (!_isInitialized) return;
+            if (!_isInitialized || _isSyncingLampUi) return;
             int val = (int)e.NewValue;
             LampuMejaBrightText.Text = $"{val}%";
             await _wizClient.SetBrightnessAsync(_lampuMeja, val);
@@ -456,7 +534,7 @@ namespace SmartHomeAcController
 
         private async void LampuMeja_KelvinChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (!_isInitialized) return;
+            if (!_isInitialized || _isSyncingLampUi) return;
             int val = (int)e.NewValue;
             LampuMejaKelvinText.Text = $"{val}K";
             UpdateKelvinPreview(LampuMejaKelvinPreview, val);
@@ -494,7 +572,7 @@ namespace SmartHomeAcController
 
         private async void LampuLedStrip_BrightChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (!_isInitialized) return;
+            if (!_isInitialized || _isSyncingLampUi) return;
             int val = (int)e.NewValue;
             LampuLedStripBrightText.Text = $"{val}%";
             await _wizClient.SetBrightnessAsync(_lampuLedStrip, val);
@@ -502,7 +580,7 @@ namespace SmartHomeAcController
 
         private async void LampuLedStrip_KelvinChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (!_isInitialized) return;
+            if (!_isInitialized || _isSyncingLampUi) return;
             int val = (int)e.NewValue;
             LampuLedStripKelvinText.Text = $"{val}K";
             UpdateKelvinPreview(LampuLedStripKelvinPreview, val);

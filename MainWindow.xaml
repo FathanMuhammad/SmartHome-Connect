@@ -284,8 +284,8 @@
                                         <ColumnDefinition Width="8"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <Button Grid.Column="0" Content="ON" Height="32" Style="{StaticResource ActionButtonStyle}" Click="LampuMeja_On_Click"/>
-                                    <Button Grid.Column="2" Content="OFF" Height="32" Style="{StaticResource PresetButtonStyle}" Click="LampuMeja_Off_Click"/>
+                                    <Button x:Name="LampuMejaOnBtn" Grid.Column="0" Content="ON" Height="32" Style="{StaticResource LampPowerButtonStyle}" Click="LampuMeja_On_Click"/>
+                                    <Button x:Name="LampuMejaOffBtn" Grid.Column="2" Content="OFF" Height="32" Style="{StaticResource LampPowerButtonStyle}" Click="LampuMeja_Off_Click"/>
                                 </Grid>
 
                                 <!-- Brightness Slider -->
@@ -338,8 +338,8 @@
                                         <ColumnDefinition Width="8"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <Button Grid.Column="0" Content="ON" Height="32" Style="{StaticResource ActionButtonStyle}" Click="LampuLedStrip_On_Click"/>
-                                    <Button Grid.Column="2" Content="OFF" Height="32" Style="{StaticResource PresetButtonStyle}" Click="LampuLedStrip_Off_Click"/>
+                                    <Button x:Name="LampuLedStripOnBtn" Grid.Column="0" Content="ON" Height="32" Style="{StaticResource LampPowerButtonStyle}" Click="LampuLedStrip_On_Click"/>
+                                    <Button x:Name="LampuLedStripOffBtn" Grid.Column="2" Content="OFF" Height="32" Style="{StaticResource LampPowerButtonStyle}" Click="LampuLedStrip_Off_Click"/>
                                 </Grid>
 
                                 <!-- Brightness Slider -->
