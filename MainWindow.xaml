@@ -1,9 +1,9 @@
 <Window x:Class="SmartHomeAcController.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Smart AC IR Controller" 
-        Height="590" Width="440"
-        MinHeight="540" MinWidth="420"
+        Title="Smart Home Connect - Fathan Room" 
+        Height="680" Width="470"
+        MinHeight="600" MinWidth="440"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource BgDarkBrush}"
         Foreground="{StaticResource TextPrimaryBrush}"
@@ -14,16 +14,16 @@
         <Grid.RowDefinitions>
             <!-- Header bar -->
             <RowDefinition Height="Auto"/>
-            <!-- Settings Expander -->
+            <!-- Navigation Tabs (AC vs WiZ Lamp) -->
             <RowDefinition Height="Auto"/>
-            <!-- Main AC Controls (Scrollable) -->
+            <!-- Content Area -->
             <RowDefinition Height="*"/>
             <!-- Log Console -->
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- 1. Header Bar -->
-        <Grid Grid.Row="0" Margin="0,0,0,12">
+        <Grid Grid.Row="0" Margin="0,0,0,10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
@@ -31,11 +31,11 @@
 
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <Border Width="34" Height="34" CornerRadius="10" Background="{StaticResource AccentGradient}" Margin="0,0,10,0">
-                    <TextBlock Text="❄" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FFFFFF"/>
+                    <TextBlock Text="🏠" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
                 <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="Smart AC Control" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}"/>
-                    <TextBlock Text="Tuya Cloud IR Blaster v2.0" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBlock Text="Smart Home Controller" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                    <TextBlock Text="AC Tuya IR &amp; Philips WiZ Lamp" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
                 </StackPanel>
             </StackPanel>
 
@@ -48,182 +48,342 @@
             </Border>
         </Grid>
 
-        <!-- 2. Settings Collapsible Card -->
-        <Border Grid.Row="1" Background="{StaticResource CardBgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="12" Margin="0,0,0,12">
-            <Expander x:Name="SettingsExpander" Background="Transparent" Foreground="{StaticResource TextPrimaryBrush}" Padding="6,4">
-                <Expander.Header>
-                    <Grid Width="370">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="⚙" FontSize="14" Margin="0,0,8,0" Foreground="{StaticResource AccentBlueBrush}"/>
-                            <TextBlock Text="Pengaturan Koneksi &amp; Kredensial" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
-                        </StackPanel>
-                    </Grid>
-                </Expander.Header>
-
-                <StackPanel Margin="6,8,6,6">
-                    <!-- Data Center Dropdown -->
-                    <TextBlock Text="Data Center" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
-                    <ComboBox x:Name="DataCenterComboBox" Background="#25253A" Foreground="{StaticResource TextPrimaryBrush}" Padding="8,6" Margin="0,0,0,8">
-                        <ComboBoxItem Content="Western America (https://openapi.tuyaus.com)" Tag="https://openapi.tuyaus.com" IsSelected="True"/>
-                        <ComboBoxItem Content="Singapore (https://openapi-sg.iotbing.com)" Tag="https://openapi-sg.iotbing.com"/>
-                        <ComboBoxItem Content="Central Europe (https://openapi.tuyaeu.com)" Tag="https://openapi.tuyaeu.com"/>
-                    </ComboBox>
-
-                    <!-- Client Secret -->
-                    <TextBlock Text="Tuya Client Secret (Access Secret)" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
-                    <Grid Margin="0,0,0,8">
-                        <PasswordBox x:Name="ClientSecretBox" PasswordChanged="OnSecretPasswordChanged" Height="34"/>
-                        <TextBox x:Name="ClientSecretVisibleBox" Visibility="Collapsed" TextChanged="OnSecretTextChanged" Height="34"/>
-                        <Button x:Name="ToggleSecretBtn" Content="👁" Width="28" Height="28" HorizontalAlignment="Right" Margin="0,0,4,0" 
-                                Background="Transparent" BorderThickness="0" Foreground="{StaticResource TextSecondaryBrush}" Cursor="Hand" Click="ToggleSecretVisibility_Click"/>
-                    </Grid>
-
-                    <!-- Device IDs & Swap -->
-                    <Grid Margin="0,0,0,6">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-
-                        <StackPanel Grid.Column="0">
-                            <TextBlock x:Name="InfraredLabel" Text="Parent IR Blaster ID" FontSize="10.5" Foreground="{StaticResource AccentBlueBrush}" Margin="0,0,0,3"/>
-                            <TextBox x:Name="InfraredIdBox" Text="eb8db822f09c6f271acwdy" TextChanged="OnConfigInputChanged" Height="32"/>
-                        </StackPanel>
-
-                        <Button Grid.Column="1" Content="⇄ Swap" ToolTip="Tukar posisi Infrared ID dan Remote ID" 
-                                Width="52" Height="32" Margin="6,16,6,0" Style="{StaticResource PresetButtonStyle}" 
-                                Click="SwapIds_Click" VerticalAlignment="Bottom"/>
-
-                        <StackPanel Grid.Column="2">
-                            <TextBlock x:Name="RemoteLabel" Text="Sub AC Remote ID" FontSize="10.5" Foreground="{StaticResource SuccessGreenBrush}" Margin="0,0,0,3"/>
-                            <TextBox x:Name="RemoteIdBox" Text="eb370cb75d3a287396tzzq" TextChanged="OnConfigInputChanged" Height="32"/>
-                        </StackPanel>
-                    </Grid>
-
-                    <!-- Swap Checkbox & Test Token Button -->
-                    <Grid Margin="0,4,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <CheckBox x:Name="SwapCheckBox" Content="Mode ID Tertukar (Swap)" Foreground="{StaticResource TextSecondaryBrush}" 
-                                  VerticalAlignment="Center" FontSize="11" Checked="SwapCheckBox_Changed" Unchecked="SwapCheckBox_Changed"/>
-                        <Button Grid.Column="1" Content="🔑 Test Token" Padding="12,5" FontSize="11.5" Style="{StaticResource PresetButtonStyle}" Click="TestToken_Click"/>
-                    </Grid>
-                </StackPanel>
-            </Expander>
+        <!-- 2. Navigation Tabs (AC vs Lampu WiZ) -->
+        <Border Grid.Row="1" Background="#1A1A28" CornerRadius="10" Padding="3" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <RadioButton x:Name="TabAcBtn" Grid.Column="0" Content="❄️ AC Kamar" 
+                             Style="{StaticResource SegmentRadioButtonStyle}" IsChecked="True" Click="TabNav_Click"/>
+                <RadioButton x:Name="TabLampBtn" Grid.Column="1" Content="💡 Lampu Smart WiZ" 
+                             Style="{StaticResource SegmentRadioButtonStyle}" Click="TabNav_Click"/>
+            </Grid>
         </Border>
 
-        <!-- 3. Main AC Control Panel (Scrollable if necessary) -->
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,0,0,8">
-            <StackPanel>
-                <!-- Power Buttons Card -->
-                <Grid Margin="0,0,0,12">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="10"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
+        <!-- 3. Content Area -->
+        <Grid Grid.Row="2" Margin="0,0,0,8">
+            <!-- TAB 1: AC KAMAR -->
+            <Grid x:Name="AcViewPanel" Visibility="Visible">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-                    <!-- Turn ON Button -->
-                    <Button Grid.Column="0" Height="46" Click="PowerOn_Click" Cursor="Hand">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border x:Name="bdr" Background="{StaticResource PowerOnGradient}" CornerRadius="10">
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        <TextBlock Text="⚡" FontSize="16" Margin="0,0,6,0" Foreground="#FFFFFF"/>
-                                        <TextBlock Text="TURN ON" FontWeight="Bold" FontSize="13" Foreground="#FFFFFF"/>
-                                    </StackPanel>
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="bdr" Property="Opacity" Value="0.9"/>
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
+                <!-- Settings Collapsible Card -->
+                <Border Grid.Row="0" Background="{StaticResource CardBgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="12" Margin="0,0,0,10">
+                    <Expander x:Name="SettingsExpander" Background="Transparent" Foreground="{StaticResource TextPrimaryBrush}" Padding="6,4">
+                        <Expander.Header>
+                            <Grid Width="380">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="⚙" FontSize="14" Margin="0,0,8,0" Foreground="{StaticResource AccentBlueBrush}"/>
+                                    <TextBlock Text="Pengaturan Koneksi Tuya" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Expander.Header>
 
-                    <!-- Turn OFF Button -->
-                    <Button Grid.Column="2" Height="46" Click="PowerOff_Click" Cursor="Hand">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border x:Name="bdr" Background="{StaticResource PowerOffGradient}" CornerRadius="10">
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        <TextBlock Text="⭕" FontSize="14" Margin="0,0,6,0" Foreground="#FFFFFF"/>
-                                        <TextBlock Text="TURN OFF" FontWeight="Bold" FontSize="13" Foreground="#FFFFFF"/>
-                                    </StackPanel>
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="bdr" Property="Opacity" Value="0.9"/>
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
-                </Grid>
+                        <StackPanel Margin="6,8,6,6">
+                            <!-- Data Center Dropdown -->
+                            <TextBlock Text="Data Center" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                            <ComboBox x:Name="DataCenterComboBox" Background="#25253A" Foreground="{StaticResource TextPrimaryBrush}" Padding="8,6" Margin="0,0,0,8">
+                                <ComboBoxItem Content="Western America (https://openapi.tuyaus.com)" Tag="https://openapi.tuyaus.com" IsSelected="True"/>
+                                <ComboBoxItem Content="Singapore (https://openapi-sg.iotbing.com)" Tag="https://openapi-sg.iotbing.com"/>
+                                <ComboBoxItem Content="Central Europe (https://openapi.tuyaeu.com)" Tag="https://openapi.tuyaeu.com"/>
+                            </ComboBox>
 
-                <!-- Central Temperature Dial Card -->
-                <Border Background="{StaticResource CardBgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="16" Padding="14,16" Margin="0,0,0,12">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
+                            <!-- Client Secret -->
+                            <TextBlock Text="Tuya Client Secret (Disimpan di .env &amp; config)" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                            <Grid Margin="0,0,0,8">
+                                <PasswordBox x:Name="ClientSecretBox" PasswordChanged="OnSecretPasswordChanged" Height="34"/>
+                                <TextBox x:Name="ClientSecretVisibleBox" Visibility="Collapsed" TextChanged="OnSecretTextChanged" Height="34"/>
+                                <Button x:Name="ToggleSecretBtn" Content="👁" Width="28" Height="28" HorizontalAlignment="Right" Margin="0,0,4,0" 
+                                        Background="Transparent" BorderThickness="0" Foreground="{StaticResource TextSecondaryBrush}" Cursor="Hand" Click="ToggleSecretVisibility_Click"/>
+                            </Grid>
 
-                        <!-- Sub-header -->
-                        <TextBlock Grid.Row="0" Text="TARGET TEMPERATURE" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                            <!-- Device IDs & Swap -->
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
 
-                        <!-- Dial row -->
-                        <Grid Grid.Row="1" HorizontalAlignment="Center">
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock x:Name="InfraredLabel" Text="Parent IR Blaster ID" FontSize="10.5" Foreground="{StaticResource AccentBlueBrush}" Margin="0,0,0,3"/>
+                                    <TextBox x:Name="InfraredIdBox" Text="eb8db822f09c6f271acwdy" TextChanged="OnConfigInputChanged" Height="32"/>
+                                </StackPanel>
+
+                                <Button Grid.Column="1" Content="⇄ Swap" ToolTip="Tukar posisi Infrared ID dan Remote ID" 
+                                        Width="52" Height="32" Margin="6,16,6,0" Style="{StaticResource PresetButtonStyle}" 
+                                        Click="SwapIds_Click" VerticalAlignment="Bottom"/>
+
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock x:Name="RemoteLabel" Text="Sub AC Remote ID" FontSize="10.5" Foreground="{StaticResource SuccessGreenBrush}" Margin="0,0,0,3"/>
+                                    <TextBox x:Name="RemoteIdBox" Text="eb370cb75d3a287396tzzq" TextChanged="OnConfigInputChanged" Height="32"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Swap Checkbox & Test Token Button -->
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <CheckBox x:Name="SwapCheckBox" Content="Mode ID Tertukar (Swap)" Foreground="{StaticResource TextSecondaryBrush}" 
+                                          VerticalAlignment="Center" FontSize="11" Checked="SwapCheckBox_Changed" Unchecked="SwapCheckBox_Changed"/>
+                                <Button Grid.Column="1" Content="🔑 Test Token" Padding="12,5" FontSize="11.5" Style="{StaticResource PresetButtonStyle}" Click="TestToken_Click"/>
+                            </Grid>
+                        </StackPanel>
+                    </Expander>
+                </Border>
+
+                <!-- AC Main Controls -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel>
+                        <!-- Power Buttons Card -->
+                        <Grid Margin="0,0,0,12">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="150"/>
-                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="10"/>
+                                <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
 
-                            <!-- Minus Button -->
-                            <Button Grid.Column="0" Content="−" Style="{StaticResource CircleTempButtonStyle}" Click="TempMinus_Click" VerticalAlignment="Center"/>
+                            <!-- Turn ON Button -->
+                            <Button Grid.Column="0" Height="46" Click="PowerOn_Click" Cursor="Hand">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="bdr" Background="{StaticResource PowerOnGradient}" CornerRadius="10">
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <TextBlock Text="⚡" FontSize="16" Margin="0,0,6,0" Foreground="#FFFFFF"/>
+                                                <TextBlock Text="TURN ON" FontWeight="Bold" FontSize="13" Foreground="#FFFFFF"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="bdr" Property="Opacity" Value="0.9"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
 
-                            <!-- Temperature Number -->
-                            <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <TextBlock x:Name="TempDisplay" Text="22°" FontSize="56" FontWeight="Light" Foreground="{StaticResource AccentBlueBrush}" HorizontalAlignment="Center"/>
-                                <TextBlock x:Name="CurrentStateSummary" Text="Cool • Fan Auto" FontSize="11.5" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,-6,0,0"/>
-                            </StackPanel>
-
-                            <!-- Plus Button -->
-                            <Button Grid.Column="2" Content="+" Style="{StaticResource CircleTempButtonStyle}" Click="TempPlus_Click" VerticalAlignment="Center"/>
+                            <!-- Turn OFF Button -->
+                            <Button Grid.Column="2" Height="46" Click="PowerOff_Click" Cursor="Hand">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="bdr" Background="{StaticResource PowerOffGradient}" CornerRadius="10">
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <TextBlock Text="⭕" FontSize="14" Margin="0,0,6,0" Foreground="#FFFFFF"/>
+                                                <TextBlock Text="TURN OFF" FontWeight="Bold" FontSize="13" Foreground="#FFFFFF"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="bdr" Property="Opacity" Value="0.9"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
                         </Grid>
-                    </Grid>
-                </Border>
 
-                <!-- Fan Speed / Wind Selection -->
-                <Border Background="{StaticResource CardBgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="12" Padding="10,10" Margin="0,0,0,10">
-                    <StackPanel>
-                        <TextBlock Text="KECEPATAN KIPAS (WIND)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="2,0,0,6"/>
-                        <UniformGrid Columns="4" x:Name="WindGrid">
-                            <RadioButton Content="Auto" Style="{StaticResource SegmentRadioButtonStyle}" IsChecked="True" Tag="0" Click="Wind_Click"/>
-                            <RadioButton Content="Low" Style="{StaticResource SegmentRadioButtonStyle}" Tag="1" Click="Wind_Click"/>
-                            <RadioButton Content="Med" Style="{StaticResource SegmentRadioButtonStyle}" Tag="2" Click="Wind_Click"/>
-                            <RadioButton Content="High" Style="{StaticResource SegmentRadioButtonStyle}" Tag="3" Click="Wind_Click"/>
-                        </UniformGrid>
+                        <!-- Central Temperature Dial Card -->
+                        <Border Background="{StaticResource CardBgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="16" Padding="14,16" Margin="0,0,0,12">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Sub-header -->
+                                <TextBlock Grid.Row="0" Text="TARGET TEMPERATURE (LANGSUNG TERKIRIM)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+
+                                <!-- Dial row -->
+                                <Grid Grid.Row="1" HorizontalAlignment="Center">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="150"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Minus Button -->
+                                    <Button Grid.Column="0" Content="−" Style="{StaticResource CircleTempButtonStyle}" Click="TempMinus_Click" VerticalAlignment="Center"/>
+
+                                    <!-- Temperature Number -->
+                                    <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock x:Name="TempDisplay" Text="22°" FontSize="56" FontWeight="Light" Foreground="{StaticResource AccentBlueBrush}" HorizontalAlignment="Center"/>
+                                        <TextBlock x:Name="CurrentStateSummary" Text="Cool • Fan Auto" FontSize="11.5" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,-6,0,0"/>
+                                    </StackPanel>
+
+                                    <!-- Plus Button -->
+                                    <Button Grid.Column="2" Content="+" Style="{StaticResource CircleTempButtonStyle}" Click="TempPlus_Click" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <!-- Fan Speed / Wind Selection -->
+                        <Border Background="{StaticResource CardBgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="12" Padding="10,10" Margin="0,0,0,6">
+                            <StackPanel>
+                                <TextBlock Text="KECEPATAN KIPAS (WIND)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="2,0,0,6"/>
+                                <UniformGrid Columns="4" x:Name="WindGrid">
+                                    <RadioButton Content="Auto" Style="{StaticResource SegmentRadioButtonStyle}" IsChecked="True" Tag="0" Click="Wind_Click"/>
+                                    <RadioButton Content="Low" Style="{StaticResource SegmentRadioButtonStyle}" Tag="1" Click="Wind_Click"/>
+                                    <RadioButton Content="Med" Style="{StaticResource SegmentRadioButtonStyle}" Tag="2" Click="Wind_Click"/>
+                                    <RadioButton Content="High" Style="{StaticResource SegmentRadioButtonStyle}" Tag="3" Click="Wind_Click"/>
+                                </UniformGrid>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
-                </Border>
-            </StackPanel>
-        </ScrollViewer>
+                </ScrollViewer>
+            </Grid>
 
-        <!-- 4. Raw API Response & Log Box -->
+            <!-- TAB 2: PHILIPS WIZ SMART LAMP -->
+            <Grid x:Name="LampViewPanel" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Lamp Header & Scan Bar -->
+                <Grid Grid.Row="0" Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Kontrol Lampu Kamar Fathan" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                        <TextBlock x:Name="LampScanStatusText" Text="WiZ UDP Port 38899" FontSize="10.5" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="🔄 Scan Lampu" Padding="12,5" FontSize="11" Style="{StaticResource PresetButtonStyle}" Click="ScanLamps_Click"/>
+                </Grid>
+
+                <!-- Lamps List (Scrollable) -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel>
+                        <!-- CARD 1: Lampu Meja (A8BB50B5A2E9) -->
+                        <Border Background="{StaticResource CardBgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="14" Padding="12,10" Margin="0,0,0,10">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="💡" FontSize="14" Margin="0,0,6,0"/>
+                                        <TextBlock Text="Lampu Meja" FontWeight="Bold" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                        <TextBlock x:Name="LampuMejaIpText" Text="(192.168.x.x)" FontSize="10.5" Foreground="{StaticResource TextMutedBrush}" Margin="6,2,0,0"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" x:Name="LampuMejaStatus" Text="⚪ Offline" FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                                </Grid>
+
+                                <!-- Power Buttons -->
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="8"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" Content="ON" Height="32" Style="{StaticResource ActionButtonStyle}" Click="LampuMeja_On_Click"/>
+                                    <Button Grid.Column="2" Content="OFF" Height="32" Style="{StaticResource PresetButtonStyle}" Click="LampuMeja_Off_Click"/>
+                                </Grid>
+
+                                <!-- Brightness Slider -->
+                                <Grid Margin="0,2,0,2">
+                                    <TextBlock Text="Kecerahan (Brightness)" FontSize="10.5" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock x:Name="LampuMejaBrightText" Text="100%" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource AccentBlueBrush}" HorizontalAlignment="Right"/>
+                                </Grid>
+                                <Slider x:Name="LampuMejaBrightSlider" Minimum="10" Maximum="100" Value="100" ValueChanged="LampuMeja_BrightChanged"/>
+
+                                <!-- Kelvin / Temperature Slider -->
+                                <Grid Margin="0,6,0,2">
+                                    <TextBlock Text="Temperatur Warna (Kelvin)" FontSize="10.5" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock x:Name="LampuMejaKelvinText" Text="4000K" FontSize="10.5" FontWeight="Bold" Foreground="#FBBF24" HorizontalAlignment="Right"/>
+                                </Grid>
+                                <Border x:Name="LampuMejaKelvinPreview" Height="10" CornerRadius="4" Background="#FFF5E6" Margin="0,0,0,4"/>
+                                <Slider x:Name="LampuMejaKelvinSlider" Minimum="2000" Maximum="6500" Value="4000" ValueChanged="LampuMeja_KelvinChanged"/>
+
+                                <!-- Quick Preset Colors -->
+                                <TextBlock Text="Preset Warna Cepat" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,6,0,4"/>
+                                <WrapPanel>
+                                    <Button Content="Warm (2700K)" FontSize="10" Padding="8,3" Margin="0,0,4,4" Style="{StaticResource PresetButtonStyle}" Click="LampuMeja_Warm_Click"/>
+                                    <Button Content="Daylight (6500K)" FontSize="10" Padding="8,3" Margin="0,0,4,4" Style="{StaticResource PresetButtonStyle}" Click="LampuMeja_Daylight_Click"/>
+                                    <Button Content="🔴 Red" FontSize="10" Padding="8,3" Margin="0,0,4,4" Style="{StaticResource PresetButtonStyle}" Click="LampuMeja_Red_Click"/>
+                                    <Button Content="🟢 Green" FontSize="10" Padding="8,3" Margin="0,0,4,4" Style="{StaticResource PresetButtonStyle}" Click="LampuMeja_Green_Click"/>
+                                    <Button Content="🔵 Blue" FontSize="10" Padding="8,3" Margin="0,0,4,4" Style="{StaticResource PresetButtonStyle}" Click="LampuMeja_Blue_Click"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- CARD 2: Lampu LED Strip (CC40858E7E82) -->
+                        <Border Background="{StaticResource CardBgBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="14" Padding="12,10" Margin="0,0,0,8">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="🌈" FontSize="14" Margin="0,0,6,0"/>
+                                        <TextBlock Text="Lampu LED Strip" FontWeight="Bold" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                        <TextBlock x:Name="LampuLedStripIpText" Text="(192.168.x.x)" FontSize="10.5" Foreground="{StaticResource TextMutedBrush}" Margin="6,2,0,0"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" x:Name="LampuLedStripStatus" Text="⚪ Offline" FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                                </Grid>
+
+                                <!-- Power Buttons -->
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="8"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" Content="ON" Height="32" Style="{StaticResource ActionButtonStyle}" Click="LampuLedStrip_On_Click"/>
+                                    <Button Grid.Column="2" Content="OFF" Height="32" Style="{StaticResource PresetButtonStyle}" Click="LampuLedStrip_Off_Click"/>
+                                </Grid>
+
+                                <!-- Brightness Slider -->
+                                <Grid Margin="0,2,0,2">
+                                    <TextBlock Text="Kecerahan (Brightness)" FontSize="10.5" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock x:Name="LampuLedStripBrightText" Text="100%" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource AccentBlueBrush}" HorizontalAlignment="Right"/>
+                                </Grid>
+                                <Slider x:Name="LampuLedStripBrightSlider" Minimum="10" Maximum="100" Value="100" ValueChanged="LampuLedStrip_BrightChanged"/>
+
+                                <!-- Kelvin / Temperature Slider -->
+                                <Grid Margin="0,6,0,2">
+                                    <TextBlock Text="Temperatur Warna (Kelvin)" FontSize="10.5" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock x:Name="LampuLedStripKelvinText" Text="4000K" FontSize="10.5" FontWeight="Bold" Foreground="#FBBF24" HorizontalAlignment="Right"/>
+                                </Grid>
+                                <Border x:Name="LampuLedStripKelvinPreview" Height="10" CornerRadius="4" Background="#FFF5E6" Margin="0,0,0,4"/>
+                                <Slider x:Name="LampuLedStripKelvinSlider" Minimum="2000" Maximum="6500" Value="4000" ValueChanged="LampuLedStrip_KelvinChanged"/>
+
+                                <!-- Quick Colors -->
+                                <TextBlock Text="Preset Warna RGB" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,6,0,4"/>
+                                <WrapPanel>
+                                    <Button Content="Warm (2700K)" FontSize="10" Padding="8,3" Margin="0,0,4,4" Style="{StaticResource PresetButtonStyle}" Click="LampuLedStrip_Warm_Click"/>
+                                    <Button Content="Daylight (6500K)" FontSize="10" Padding="8,3" Margin="0,0,4,4" Style="{StaticResource PresetButtonStyle}" Click="LampuLedStrip_Daylight_Click"/>
+                                    <Button Content="🔴 Red" FontSize="10" Padding="8,3" Margin="0,0,4,4" Style="{StaticResource PresetButtonStyle}" Click="LampuLedStrip_Red_Click"/>
+                                    <Button Content="🟣 Purple" FontSize="10" Padding="8,3" Margin="0,0,4,4" Style="{StaticResource PresetButtonStyle}" Click="LampuLedStrip_Purple_Click"/>
+                                    <Button Content="🔵 Blue" FontSize="10" Padding="8,3" Margin="0,0,4,4" Style="{StaticResource PresetButtonStyle}" Click="LampuLedStrip_Blue_Click"/>
+                                    <Button Content="🟢 Cyan" FontSize="10" Padding="8,3" Margin="0,0,4,4" Style="{StaticResource PresetButtonStyle}" Click="LampuLedStrip_Cyan_Click"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Grid>
+
+        <!-- 4. Shared API & UDP Log Box -->
         <Border Grid.Row="3" Background="#111119" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="8,6">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="95"/>
+                    <RowDefinition Height="90"/>
                 </Grid.RowDefinitions>
 
                 <Grid Grid.Row="0" Margin="0,0,0,4">
-                    <TextBlock Text="Tuya Cloud API Response &amp; Log" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Text="Smart Home Activity Log (Tuya &amp; WiZ)" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button Content="Copy" FontSize="10" Padding="6,1" Style="{StaticResource PresetButtonStyle}" Height="20" Margin="0,0,4,0" Click="CopyLog_Click"/>
                         <Button Content="Clear" FontSize="10" Padding="6,1" Style="{StaticResource PresetButtonStyle}" Height="20" Click="ClearLog_Click"/>
