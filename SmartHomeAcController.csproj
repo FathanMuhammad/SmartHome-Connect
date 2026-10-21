@@ -6,12 +6,15 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>logo\Wiz.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <None Update="config.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <Resource Include="logo\Wiz.ico" />
+    <Resource Include="logo\Wiz.png" />
   </ItemGroup>
 
 </Project>

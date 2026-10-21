@@ -5,6 +5,7 @@
         Height="600" Width="470"
         MinHeight="540" MinWidth="440"
         WindowStartupLocation="CenterScreen"
+        Icon="logo/Wiz.ico"
         Background="{StaticResource BgDarkBrush}"
         Foreground="{StaticResource TextPrimaryBrush}"
         FontFamily="{StaticResource AppFont}"
@@ -31,7 +32,7 @@
 
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <Border Width="34" Height="34" CornerRadius="10" Background="{StaticResource AccentGradient}" Margin="0,0,10,0">
-                    <TextBlock Text="🏠" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <Image Source="logo/Wiz.png" Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
                 </Border>
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="Smart Home Controller" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}"/>
