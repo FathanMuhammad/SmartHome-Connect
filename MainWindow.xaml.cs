@@ -84,6 +84,7 @@ namespace SmartHomeAcController
             _currentWind = Math.Clamp(_config.LastWind, 0, 3);
 
             UpdateTempDisplay();
+            UpdateAcPowerButtonsUi();
 
             // Set Wind RadioButton
             foreach (RadioButton rb in WindGrid.Children.OfType<RadioButton>())
@@ -181,6 +182,44 @@ namespace SmartHomeAcController
         {
             TempDisplay.Text = $"{_currentTemp}°";
             UpdateSummaryText();
+        }
+
+        private void UpdateAcPowerButtonsUi()
+        {
+            if (AcTurnOnBtn == null || AcTurnOffBtn == null) return;
+
+            if (_currentPower == 1)
+            {
+                // Active ON: Full vibrant green gradient
+                AcTurnOnBtn.Background = (Brush)FindResource("PowerOnGradient");
+                AcTurnOnBtn.Foreground = Brushes.White;
+                AcTurnOnBtn.BorderBrush = new SolidColorBrush(Color.FromRgb(52, 211, 153));
+                AcTurnOnBtn.BorderThickness = new Thickness(1.5);
+                AcTurnOnBtn.Opacity = 1.0;
+
+                // Inactive OFF: Dark muted
+                AcTurnOffBtn.Background = new SolidColorBrush(Color.FromRgb(28, 28, 42));
+                AcTurnOffBtn.Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184));
+                AcTurnOffBtn.BorderBrush = new SolidColorBrush(Color.FromRgb(54, 54, 84));
+                AcTurnOffBtn.BorderThickness = new Thickness(1);
+                AcTurnOffBtn.Opacity = 0.55;
+            }
+            else
+            {
+                // Inactive ON: Dark muted
+                AcTurnOnBtn.Background = new SolidColorBrush(Color.FromRgb(28, 28, 42));
+                AcTurnOnBtn.Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184));
+                AcTurnOnBtn.BorderBrush = new SolidColorBrush(Color.FromRgb(54, 54, 84));
+                AcTurnOnBtn.BorderThickness = new Thickness(1);
+                AcTurnOnBtn.Opacity = 0.55;
+
+                // Active OFF: Full vibrant red gradient
+                AcTurnOffBtn.Background = (Brush)FindResource("PowerOffGradient");
+                AcTurnOffBtn.Foreground = Brushes.White;
+                AcTurnOffBtn.BorderBrush = new SolidColorBrush(Color.FromRgb(248, 113, 113));
+                AcTurnOffBtn.BorderThickness = new Thickness(1.5);
+                AcTurnOffBtn.Opacity = 1.0;
+            }
         }
 
         private void SaveCurrentConfig()
@@ -301,7 +340,9 @@ namespace SmartHomeAcController
             if (_currentTemp > 16)
             {
                 _currentTemp--;
+                _currentPower = 1; // Otomatis aktifkan ON saat ubah suhu
                 UpdateTempDisplay();
+                UpdateAcPowerButtonsUi();
                 SaveCurrentConfig();
                 await ExecuteSendCommandAsync();
             }
@@ -312,7 +353,9 @@ namespace SmartHomeAcController
             if (_currentTemp < 30)
             {
                 _currentTemp++;
+                _currentPower = 1; // Otomatis aktifkan ON saat ubah suhu
                 UpdateTempDisplay();
+                UpdateAcPowerButtonsUi();
                 SaveCurrentConfig();
                 await ExecuteSendCommandAsync();
             }
@@ -323,7 +366,9 @@ namespace SmartHomeAcController
             if (sender is RadioButton rb && int.TryParse(rb.Tag?.ToString(), out int windVal))
             {
                 _currentWind = windVal;
+                _currentPower = 1; // Otomatis aktifkan ON saat ubah kipas
                 UpdateSummaryText();
+                UpdateAcPowerButtonsUi();
                 SaveCurrentConfig();
                 await ExecuteSendCommandAsync();
             }
@@ -333,6 +378,7 @@ namespace SmartHomeAcController
         {
             _currentPower = 1;
             UpdateSummaryText();
+            UpdateAcPowerButtonsUi();
             SaveCurrentConfig();
             await ExecuteSendCommandAsync();
         }
@@ -341,6 +387,7 @@ namespace SmartHomeAcController
         {
             _currentPower = 0;
             UpdateSummaryText();
+            UpdateAcPowerButtonsUi();
             SaveCurrentConfig();
             await ExecuteSendCommandAsync();
         }
